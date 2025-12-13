@@ -44,8 +44,8 @@ def save_submission(filename, rows, header):
 
 def compile_submission(
     save_name,
-    root_dir,
-    subtask_id,
+    data_dir,
+    output_dir,
     languages,
     model,
     thresh,
@@ -53,14 +53,12 @@ def compile_submission(
     batch_size,
     device
 ):
-    subtask_dir = f"subtask_{subtask_id}"
-
-    if os.path.exists(subtask_dir):
-        shutil.rmtree(subtask_dir)
-    os.makedirs(subtask_dir)
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    os.makedirs(output_dir)
 
     for lang in languages:
-        dev = pd.read_csv(os.path.join(root_dir, f'subtask{subtask_id}/dev/{lang}.csv'))
+        dev = pd.read_csv(os.path.join(data_dir, f'{lang}.csv'))
 
         dataset = PolarDataset(
             dev['id'].tolist(),
@@ -73,12 +71,12 @@ def compile_submission(
         submission = prepare_submission(dataset, model, thresh, batch_size, device)
         labels = dev.columns.drop(["id", "text"]).tolist()
 
-        pred_file = os.path.join(subtask_dir, f"pred_{lang}.csv")
+        pred_file = os.path.join(output_dir, f"pred_{lang}.csv")
         save_submission(pred_file, submission, ["id"] + labels)
 
     with zipfile.ZipFile(save_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, _, files in os.walk(subtask_dir):
+        for root, _, files in os.walk(output_dir):
             for file in files:
                 file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, os.path.dirname(subtask_dir))
+                arcname = os.path.relpath(file_path, os.path.dirname(output_dir))
                 zipf.write(file_path, arcname=arcname)
