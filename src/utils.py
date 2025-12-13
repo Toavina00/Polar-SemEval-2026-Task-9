@@ -5,6 +5,8 @@ import zipfile
 
 import torch
 import pandas as pd
+
+from .dataset import PolarDataset
 from transformers import DataCollatorWithPadding
 
 
