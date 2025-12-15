@@ -21,18 +21,18 @@ class FocalLoss(torch.nn.Module):
     def forward(self, inputs, targets):
         bce_loss = torch.nn.functional.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
 
-        p = torch.exp(-inputs)
-        p_t = p * targets + (1 - p) * (1 - targets)
+        p = torch.sigmoid(inputs)
+        p_t = p * targets + (1.0 - p) * (1.0 - targets)
         
-        focal_loss = ((1 - p_t) ** self.gamma) * bce_loss
+        focal_loss = ((1.0 - p_t) ** self.gamma) * bce_loss
         
         if self.alpha is not None:
             if isinstance(self.alpha, (float, int)):
-                alpha_t = self.alpha * targets + (1 - self.alpha) * (1 - targets)
+                alpha_t = self.alpha * targets + (1.0 - self.alpha) * (1.0 - targets)
             else:
                 alpha = torch.tensor(self.alpha, device=inputs.device, dtype=inputs.dtype)
                 alpha = alpha.unsqueeze(0)
-                alpha_t = alpha * targets + (1 - alpha) * (1 - targets)
+                alpha_t = alpha * targets + (1.0 - alpha) * (1.0 - targets)
             
             focal_loss = alpha_t * focal_loss
 
