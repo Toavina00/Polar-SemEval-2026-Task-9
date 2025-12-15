@@ -19,7 +19,13 @@ class FocalLoss(torch.nn.Module):
 
     def forward(self, inputs, targets):
         bce = torch.nn.functional.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
-        focal_loss = self.alpha * (1 - torch.exp(-bce)) ** self.gamma * bce
+        alpha = torch.gather(
+            self.alpha.repeat(labels.shape[0], 1, 1),
+            dim=2,
+            index=targets.to(torch.long).unsqueeze(2)
+        ).squeeze(2)
+
+        focal_loss = alpha * (1 - torch.exp(-bce)) ** self.gamma * bce
         return focal_loss.mean()
 
 @dataclass
