@@ -11,6 +11,16 @@ from transformers.modeling_outputs import SequenceClassifierOutput
 
 import torch
 
+class FocalLoss(torch.nn.Module):
+    def __init__(self, alpha=1, gamma=2):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha 
+        self.gamma = gamma
+
+    def forward(self, inputs, targets):
+        bce = torch.nn.functional.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        focal_loss = self.alpha * (1 - torch.exp(-bce)) ** self.gamma * bce
+        return focal_loss.mean()
 
 @dataclass
 class PolarTrainingArgs(TrainingArguments):
@@ -29,12 +39,21 @@ class PolarTrainingArgs(TrainingArguments):
 
 
 class PolarModel(torch.nn.Module):
-    def __init__(self, checkpoint, num_labels, hidden_layers, pooling_strategy="cls", weights=None):
+    def __init__(self, checkpoint, num_labels, hidden_layers, criterion="bce", pooling_strategy="cls", weights=None, alpha=1, gamma=2):
         super(PolarModel, self).__init__()
 
         self.num_labels = num_labels
         self.pooling_strategy = pooling_strategy.lower()
-        self.criterion = torch.nn.BCEWithLogitsLoss(pos_weight=weights)
+
+        self.criterion = None
+
+        if criterion.lower() == "bce":
+            self.criterion = torch.nn.BCEWithLogitsLoss(pos_weight=weights)
+        elif criterion.lower() == "focal":
+            self.criterion = FocalLoss(alpha=alpha, gamma=gamma)
+        else:
+            raise ValueError(f"Unknown criterion: {criterion}")
+
 
         self.config = AutoConfig.from_pretrained(checkpoint)
         self.base_model = AutoModel.from_pretrained(checkpoint, config=self.config)
