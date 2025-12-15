@@ -14,13 +14,20 @@ import torch
 class FocalLoss(torch.nn.Module):
     def __init__(self, alpha=1, gamma=2):
         super(FocalLoss, self).__init__()
+
+        if isinstance(alpha, torch.Tensor) and len(alpha) > 1:
+            alpha = torch.stack([
+                1.0/alpha,
+                alpha,
+            ]).T
+
         self.alpha = alpha 
         self.gamma = gamma
 
     def forward(self, inputs, targets):
         bce = torch.nn.functional.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
         alpha = torch.gather(
-            self.alpha.repeat(labels.shape[0], 1, 1),
+            self.alpha.repeat(targets.shape[0], 1, 1),
             dim=2,
             index=targets.to(torch.long).unsqueeze(2)
         ).squeeze(2)
