@@ -12,36 +12,30 @@ from transformers.modeling_outputs import SequenceClassifierOutput
 import torch
 
 class FocalLoss(torch.nn.Module):
-    def __init__(self, alpha=1, gamma=2):
+    def __init__(self, alpha=None, gamma=2):
         super(FocalLoss, self).__init__()
 
-        self.alpha = None
-
-        if isinstance(alpha, torch.Tensor) and len(alpha) > 1:
-            self.alpha = torch.stack([
-                torch.ones_like(alpha),
-                alpha,
-            ]).T
-        else:
-            self.alpha = alpha
-
+        self.alpha = alpha
         self.gamma = gamma
 
     def forward(self, inputs, targets):
-        bce = torch.nn.functional.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        bce_loss = torch.nn.functional.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
 
-        alpha = None
+        p = torch.sigmoid(inputs)
+        p_t = p * targets + (1 - p) * (1 - targets)
+        
+        focal_loss = (1 - p_t) ** self.gamma * bce_loss
+        
+        if self.alpha is not None:
+            if isinstance(self.alpha, (float, int)):
+                alpha_t = self.alpha * targets + (1 - self.alpha) * (1 - targets)
+            else:
+                alpha = torch.tensor(self.alpha, device=inputs.device, dtype=inputs.dtype)
+                alpha = alpha.unsqueeze(0)
+                alpha_t = alpha * targets + (1 - alpha) * (1 - targets)
+            
+            focal_loss = alpha_t * focal_loss
 
-        if isinstance(alpha, torch.Tensor) and len(alpha) > 1:
-            alpha =  torch.gather(
-                self.alpha.repeat(targets.shape[0], 1, 1),
-                dim=2,
-                index=targets.to(torch.long).unsqueeze(2)
-            ).squeeze(2)
-        else:
-            alpha = self.alpha
-
-        focal_loss = alpha * (1 - torch.exp(-bce)) ** self.gamma * bce
         return focal_loss.mean()
 
 @dataclass
