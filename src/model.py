@@ -24,7 +24,7 @@ class FocalLoss(torch.nn.Module):
         p = torch.sigmoid(inputs)
         p_t = p * targets + (1 - p) * (1 - targets)
         
-        focal_loss = (1 - p_t) ** self.gamma * bce_loss
+        focal_loss = ((1 - p_t) ** self.gamma) * bce_loss
         
         if self.alpha is not None:
             if isinstance(self.alpha, (float, int)):
