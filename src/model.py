@@ -12,10 +12,10 @@ from transformers.modeling_outputs import SequenceClassifierOutput
 import torch
 
 class FocalLoss(torch.nn.Module):
-    def __init__(self, alpha=1.0, gamma=2):
+    def __init__(self, alpha=None, gamma=2):
         super(FocalLoss, self).__init__()
 
-        self.alpha = alpha
+        self.alpha = 1.0 if alpha is None else alpha
         self.gamma = gamma
 
     def forward(self, inputs, targets):
@@ -45,7 +45,7 @@ class PolarTrainingArgs(TrainingArguments):
 
 
 class PolarModel(torch.nn.Module):
-    def __init__(self, checkpoint, num_labels, hidden_layers, criterion="bce", pooling_strategy="cls", weights=None, alpha=1.0, gamma=2):
+    def __init__(self, checkpoint, num_labels, hidden_layers, criterion="bce", pooling_strategy="cls", weights=None, gamma=2):
         super(PolarModel, self).__init__()
 
         self.num_labels = num_labels
@@ -56,7 +56,7 @@ class PolarModel(torch.nn.Module):
         if criterion.lower() == "bce":
             self.criterion = torch.nn.BCEWithLogitsLoss(pos_weight=weights)
         elif criterion.lower() == "focal":
-            self.criterion = FocalLoss(alpha=alpha, gamma=gamma)
+            self.criterion = FocalLoss(alpha=weights, gamma=gamma)
         else:
             raise ValueError(f"Unknown criterion: {criterion}")
 
