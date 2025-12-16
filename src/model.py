@@ -15,7 +15,7 @@ class FocalLoss(torch.nn.Module):
     def __init__(self, alpha=None, gamma=2):
         super(FocalLoss, self).__init__()
 
-        self.alpha = 1.0 if alpha is None else alpha
+        self.alpha = alpha
         self.gamma = gamma
 
     def forward(self, inputs, targets):
